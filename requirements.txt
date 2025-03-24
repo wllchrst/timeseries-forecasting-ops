@@ -1,0 +1,4 @@
+fastapi==0.115.12
+python-dotenv==1.0.1
+uvicorn==0.34.0
+git+https://github.com/ibm-granite/granite-tsfm.git@v0.2.22#egg=granite-tsfm[notebooks]
