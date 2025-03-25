@@ -1,12 +1,10 @@
 """Script for training the TTM Model
 """
+import numpy as np
 import math
 import os
-import tempfile
 import pandas as pd
-import numpy as np
-
-from model.commodity.constant import column_specifiers, split_config
+from model.commodity.constant import column_specifiers, split_config, TTM_MODEL_PATH, id_columns
 
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import OneCycleLR
@@ -17,25 +15,25 @@ from tsfm_public import TimeSeriesPreprocessor, TrackingCallback, count_paramete
 from tsfm_public.toolkit.get_model import get_model
 from tsfm_public.toolkit.lr_finder import optimal_lr_finder
 from tsfm_public.toolkit.visualization import plot_predictions
-from sklearn.preprocessing import LabelEncoder, StandardScaler
 from typing import Tuple
-import warnings
-# Suppress all warnings
-warnings.filterwarnings("ignore")
+
+SEED = 42
+set_seed(SEED)
 
 def fewshot_finetune_eval(
-    dataset_name,
     batch_size,
+    save_dir: str,
+    training_dataset: pd.DataFrame,
+    dataset_name='CommodityPrice',
     learning_rate=None,
     context_length=512,
     forecast_length=96,
     fewshot_percent=5,
     freeze_backbone=True,
     num_epochs=50,
-    save_dir=OUT_DIR,
     loss="mse",
     quantile=0.5,
-) -> Trainer:
+) -> Tuple[Trainer, TimeSeriesPreprocessor]:
     out_dir = os.path.join(save_dir, dataset_name)
 
     print("-" * 20, f"Running few-shot {fewshot_percent}%", "-" * 20)
@@ -52,7 +50,7 @@ def fewshot_finetune_eval(
     )
 
     dset_train, dset_val, dset_test = get_datasets(
-        tsp, data, split_config, fewshot_fraction=fewshot_percent / 100, fewshot_location="first"
+        tsp, training_dataset, split_config, fewshot_fraction=fewshot_percent / 100, fewshot_location="first"
     )
 
     # change head dropout to 0.7 for ett datasets
@@ -183,9 +181,184 @@ def fewshot_finetune_eval(
     plot_predictions(
         model=finetune_forecast_trainer.model,
         dset=dset_test,
-        plot_dir=os.path.join(OUT_DIR, dataset_name),
+        plot_dir=os.path.join(save_dir, dataset_name),
         plot_prefix="test_fewshot",
         channel=0,
     )
 
     return finetune_forecast_trainer, tsp
+
+def create_single_dataset(
+    ts_preprocessor: TimeSeriesPreprocessor,
+    dataset: pd.DataFrame,
+    stride: int = 1,
+    use_frequency_token: bool = False,
+    enable_padding: bool = True,
+    **dataset_kwargs
+) -> ForecastDFDataset:
+    """Creates a single preprocessed pytorch dataset without splitting
+
+    Args:
+        ts_preprocessor (TimeSeriesPreprocessor): The preprocessor object that has been initialized
+        dataset (pd.DataFrame): Your pandas dataframe containing time series data
+        stride (int): Stride used for creating the dataset. Defaults to 1.
+        use_frequency_token (bool): If True, dataset is created with frequency token. Defaults to False.
+        enable_padding (bool): If True, dataset is created with padding. Defaults to True.
+        dataset_kwargs: Additional keyword arguments to pass to the torch dataset.
+
+    Returns:
+        A pytorch dataset ready for use
+    """
+
+    if not ts_preprocessor.context_length:
+        raise ValueError("TimeSeriesPreprocessor must be instantiated with non-null context_length")
+    if not ts_preprocessor.prediction_length:
+        raise ValueError("TimeSeriesPreprocessor must be instantiated with non-null prediction_length")
+
+    # Standardize the dataframe
+    data = ts_preprocessor._standardize_dataframe(dataset)
+
+    # # Train the preprocessor on the full dataset
+    # ts_preprocessor.train(data)
+
+    # Preprocess the data
+    preprocessed_data = ts_preprocessor.preprocess(data)
+
+    # Specify columns
+    params = {
+        "id_columns": ts_preprocessor.id_columns,
+        "timestamp_column": ts_preprocessor.timestamp_column,
+        "target_columns": ts_preprocessor.target_columns,
+        "observable_columns": ts_preprocessor.observable_columns,
+        "control_columns": ts_preprocessor.control_columns,
+        "conditional_columns": ts_preprocessor.conditional_columns,
+        "categorical_columns": ts_preprocessor.categorical_columns,
+        "static_categorical_columns": ts_preprocessor.static_categorical_columns,
+        "context_length": ts_preprocessor.context_length,
+        "prediction_length": ts_preprocessor.prediction_length,
+        "stride": stride,
+        "enable_padding": enable_padding
+    }
+
+    # Add frequency token if needed
+    if use_frequency_token:
+        params["frequency_token"] = ts_preprocessor.get_frequency_token(ts_preprocessor.freq)
+
+    # Add any additional parameters
+    params.update(**dataset_kwargs)
+
+    # Create and return the dataset
+    final_dataset = ForecastDFDataset(preprocessed_data, **params)
+
+    if len(final_dataset) == 0:
+        raise RuntimeError("Generated dataset is of zero length.")
+
+    return final_dataset
+
+def predict_new_data(
+    trainer,
+    new_data: pd.DataFrame,
+    tsp: TimeSeriesPreprocessor,
+    context_length: int = 512,
+    forecast_length: int = 92,
+    dataset_name: str = "new_dataset",
+    save_dir: str = "./predictions",
+    with_plot: bool = True,
+    channel: int = 0
+) -> Tuple[pd.DataFrame, np.ndarray, object]:
+    """
+    Make predictions on new data using a previously trained model and return a DataFrame
+    with predictions for each row.
+
+    Args:
+        trainer: Trained model used for prediction.
+        new_data: DataFrame containing new data for prediction.
+        column_specifiers: Column mappings for TimeSeriesPreprocessor.
+        context_length: Context length for the model.
+        forecast_length: Forecast length for the model.
+        dataset_name: Name for saving predictions.
+        save_dir: Directory for saving results.
+        id_columns: Identifying columns (Date, commodity, province).
+        timestamp_column: Column containing timestamps.
+        with_plot: Whether to generate plots.
+        channel: Channel to plot.
+
+    Returns:
+        Tuple of (predictions_df, raw_predictions, test_dataset)
+    """
+
+    # Create output directory
+    out_dir = os.path.join(save_dir, dataset_name)
+    os.makedirs(out_dir, exist_ok=True)
+
+    # Create the test dataset
+    test_dataset = create_single_dataset(
+        ts_preprocessor=tsp,
+        dataset=new_data,
+        stride=1,  # Ensure full dataset coverage
+        use_frequency_token=False,
+        enable_padding=True
+    )
+    print(f'New data test dataset length: {len(test_dataset)}')
+
+    # Extract identifier values for each sample
+    original_indices = []
+    id_values_list = []
+
+    for i in range(len(test_dataset)):
+        sample = test_dataset[i]
+        # print(sample.keys())
+        # return
+        id_values = {col: sample["id"][j] for j, col in enumerate(id_columns)}
+
+        id_values_list.append(id_values)
+        original_indices.append(i)
+
+    # Set model to evaluation mode
+    trainer.model.eval()
+
+    # Set loss function (if needed)
+    trainer.model.loss = "mse"
+
+    predictions_dict = trainer.predict(test_dataset)
+    predictions_np = predictions_dict.predictions[0]
+
+    if len(predictions_dict.predictions) > 1:
+        backbone_embedding = predictions_dict.predictions[1]
+
+    rows = []
+
+    for i, idx in enumerate(original_indices):
+        if i >= len(predictions_np):
+            print(f"Warning: No prediction available for index {idx}")
+            continue
+
+        id_values = id_values_list[i]
+
+        start_date = pd.to_datetime("2024-10-01")
+        forecast_dates = [start_date + pd.Timedelta(days=step) for step in range(predictions_np.shape[1])]
+
+        for step, date in enumerate(forecast_dates):
+            row = {
+                "date": date.strftime("%Y-%m-%d"),
+                "commodity": id_values["commodity"],
+                "province": id_values["province"],
+                "price": predictions_np[i, step, 0],  # Extract price for step
+            }
+            rows.append(row)
+
+
+    predictions_df = pd.DataFrame(rows)
+    predictions_df = tsp.inverse_scale_targets(predictions_df)
+    predictions_df.to_csv(os.path.join(out_dir, f"{dataset_name}_formatted_predictions.csv"), index=False)
+
+    if with_plot:
+        plot_predictions(
+            model=trainer.model,
+            dset=test_dataset,
+            plot_dir=out_dir,
+            plot_prefix=f"{dataset_name}_predictions",
+            channel=channel,
+        )
+
+    return predictions_df, predictions_np, test_dataset
