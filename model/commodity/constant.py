@@ -16,3 +16,6 @@ split_config = {
     "train": 0.8,
     "test": 0.1
 }
+
+TTM_MODEL_PATH = "ibm-granite/granite-timeseries-ttm-r2"
+feature_to_scale = ['GlobalOpen', 'GlobalHigh', 'GlobalVol.', 'GlobalPrice', 'CE_Close', 'CE_High', 'CE_Low', 'CE_Open']
