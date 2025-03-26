@@ -1,7 +1,6 @@
-FROM python:3.11-alpine
+FROM python:3.11-slim 
 
-# Install required system dependencies
-RUN apk add --no-cache git gcc g++ musl-dev libffi-dev
+RUN apt update && apt install -y git gcc g++ musl-dev libffi-dev
 
 # Set the working directory
 WORKDIR /app
