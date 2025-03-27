@@ -3,13 +3,14 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from model.commodity.constant import feature_to_scale
 class CommodityDataset:
-    def __init__(self, dataset_path: str):
+    def __init__(self, dataset_path: str, testing_dataset: bool=False):
         self.dataset_path = dataset_path
         self.dataset: pd.DataFrame = pd.read_csv(self.dataset_path)
         self.labels: list[str] = []
         self.province_encoder = LabelEncoder()
         self.commodity_encoder = LabelEncoder()
         self.scaler = StandardScaler()
+        self.testing_dataset = testing_dataset
         self.process_dataset()
         
     def process_dataset(self) -> bool:
@@ -29,5 +30,8 @@ class CommodityDataset:
 
             self.province_mapping = {idx: label for idx, label in enumerate(self.province_encoder.classes_)}
             self.commodity_mapping = {idx: label for idx, label in enumerate(self.commodity_encoder.classes_)}
+
+            if self.testing_dataset:
+                self.dataset['price'] = 0
         except Exception as e:
             print(f'Error processing dataset: {e}')
