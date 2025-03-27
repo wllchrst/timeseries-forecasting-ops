@@ -28,8 +28,8 @@ class CommodityDataset:
             for col in feature_to_scale:
                 self.dataset[col] = self.scaler.fit_transform(self.dataset[[col]])
 
-            self.province_mapping = {idx: label for idx, label in enumerate(self.province_encoder.classes_)}
-            self.commodity_mapping = {idx: label for idx, label in enumerate(self.commodity_encoder.classes_)}
+            self.province_mapping = {label: idx for idx, label in enumerate(self.province_encoder.classes_)}
+            self.commodity_mapping = {label: idx for idx, label in enumerate(self.commodity_encoder.classes_)}
 
             if self.testing_dataset:
                 self.dataset['price'] = 0
