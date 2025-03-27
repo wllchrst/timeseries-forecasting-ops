@@ -2,9 +2,11 @@
 Class for holding commodity model
 """
 import pandas as pd
+import numpy as np
 from transformers import Trainer
 from tsfm_public import TimeSeriesPreprocessor
 from model.commodity.training import fewshot_finetune_eval, predict_new_data
+from api.types import CommodityPriceRequestDTO
 class CommodityModel:
     """Model for training, testing, and predicting data for commodity price
     """
@@ -26,7 +28,7 @@ class CommodityModel:
                 fewshot_percent=30,
                 learning_rate=0.001,
                 num_epochs=20 if not testing else 1,
-                save_dir='/save_dir'
+                save_dir='./save_dir'
             )
             print('Finetuning model success')
         except Exception as e:
@@ -52,6 +54,17 @@ class CommodityModel:
                 with_plot=False
             )
 
-            print(predictions_df)
+            print(predictions_df.head())
         except Exception as e:
             print(f'Dataset testing error: {e}')
+
+    def predict_price(self, commodity_price_request: CommodityPriceRequestDTO) -> np.float64:
+        """Function to predict commodity price
+
+        Args:
+            commodity_price_request (CommodityPriceRequestDTO): commodity information
+
+        Returns:
+            np.float64: Price for that day
+        """
+        pass
