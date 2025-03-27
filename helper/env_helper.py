@@ -14,4 +14,9 @@ class EnvHelper:
     def gather_env(self):
         """Gather all env variables
         """
-        self.api_host = os.getenv("API_HOST")
+        try:
+            self.api_host = os.getenv("API_HOST")
+            self.traing_dset_path = os.getenv("COMMODITY_TRAINING")
+            self.testing_dset_path = os.getenv("COMMODITY_TESTING")
+        except Exception as e:
+            print(f'Gathering Env failed: {e}')
