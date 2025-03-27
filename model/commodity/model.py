@@ -102,6 +102,14 @@ class CommodityModel:
         self,
         commodity_price_request: CommodityPriceRequestDTO,
     ) -> pd.DataFrame:
+        """Create dataset for single commodity price request
+
+        Args:
+            commodity_price_request (CommodityPriceRequestDTO): data that is going to be turned to df
+
+        Returns:
+            pd.DataFrame: final result ready for predicting
+        """
         dict = {
             'Date': [pd.to_datetime(commodity_price_request.date)],
             'commodity': [self.commodity_mapping[commodity_price_request.commodity]],

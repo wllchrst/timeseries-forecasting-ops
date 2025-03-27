@@ -1,4 +1,3 @@
-from .model import CommodityModel
-from .dataset import CommodityDataset
+from .handler import CommodityHandler
 
-commodity_model = CommodityModel()
+commodity_handler = CommodityHandler()
