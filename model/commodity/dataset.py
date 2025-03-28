@@ -3,9 +3,8 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from model.commodity.constant import feature_to_scale
 class CommodityDataset:
-    def __init__(self, dataset_path: str, testing_dataset: bool=False):
-        self.dataset_path = dataset_path
-        self.dataset: pd.DataFrame = pd.read_csv(self.dataset_path)
+    def __init__(self, dataset: pd.DataFrame, testing_dataset: bool=False):
+        self.dataset: pd.DataFrame = dataset
         self.labels: list[str] = []
         self.province_encoder = LabelEncoder()
         self.commodity_encoder = LabelEncoder()
