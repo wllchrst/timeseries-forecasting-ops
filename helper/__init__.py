@@ -1,2 +1,2 @@
 from .env_helper import EnvHelper
-env_helper = EnvHelper()
+from .data_helper import DataHelper
