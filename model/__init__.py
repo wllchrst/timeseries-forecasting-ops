@@ -1,1 +1,1 @@
-from .commodity import commodity_handler
+from .commodity import CommodityHandler
