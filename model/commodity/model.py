@@ -1,7 +1,7 @@
 """
 Class for holding commodity model
 """
-import helper
+import traceback
 import pandas as pd
 import numpy as np
 from transformers import Trainer
@@ -39,7 +39,6 @@ class CommodityModel:
                 num_epochs=1 if testing else 20,
                 save_dir='./save_dir'
             )
-            
             self.province_mapping = province_mapping
             self.commodity_mapping = commodity_mapping
             print('Finetuning model success')
@@ -81,10 +80,10 @@ class CommodityModel:
         """
         if self.tsp is None:
             return -1
-        
+
         try:
             predict_df = self.create_df(commodity_price_request)
-        
+
             results_df, _, _ = predict_new_data(
                 trainer=self.trainer,
                 new_data=predict_df,
@@ -94,9 +93,17 @@ class CommodityModel:
                 dataset_name="new_prediction",
                 with_plot=False
             )
-            print(results_df.head())
+
+            print(results_df)
+            final_result = results_df[results_df['date'] == commodity_price_request.date]
+            print(final_result.head())
+
+            return final_result['price'][0]
+
         except Exception as e:
+            traceback.print_exc()
             print(f'Predicting price errpr: {e}')
+            return -1
 
     def create_df(
         self,
@@ -110,7 +117,7 @@ class CommodityModel:
         Returns:
             pd.DataFrame: final result ready for predicting
         """
-        dict = {
+        data_dict = {
             'Date': [pd.to_datetime(commodity_price_request.date)],
             'commodity': [self.commodity_mapping[commodity_price_request.commodity]],
             'province': [self.province_mapping[commodity_price_request.province]],
@@ -127,7 +134,7 @@ class CommodityModel:
             'GTPrice': [commodity_price_request.gt_price],
             'price': [0],
         }
-        
-        df = pd.DataFrame(dict)
+
+        df = pd.DataFrame(data_dict)
         df['timestamp'] = df['Date'].astype('int64') // 10**9
         return df
