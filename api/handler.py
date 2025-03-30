@@ -2,7 +2,7 @@
 import uvicorn
 from helper import EnvHelper
 from app_decorator import singleton
-from .endpoint import app
+from api.endpoint import app
 @singleton
 class APIHandler:
     """Class for handling api"""
