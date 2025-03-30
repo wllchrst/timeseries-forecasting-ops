@@ -30,5 +30,6 @@ class CommodityHandler:
         except Exception as e:
             print(f'Finetuning and evaluate error: {e}')
 
-    def predict_price(self, commodity_request_dto: CommodityPriceRequestDTO):
-        self.model.predict_price(commodity_request_dto)
+    def predict_price(self, commodity_request_dto: CommodityPriceRequestDTO) -> float:
+        prediction = self.model.predict_price(commodity_request_dto)
+        return float(prediction)
