@@ -15,7 +15,7 @@ class Main:
 
     def start_commodity(self):
         """Function to start commodity related functions"""
-        self.commodity_handler = CommodityHandler(True, True)
+        self.commodity_handler = CommodityHandler(False, True)
 
     def start_api(self):
         """Function to start API related functions"""
