@@ -1,6 +1,6 @@
 """Main Script for running the project
 """
-from helper import EnvHelper, DataHelper
+from helper import EnvHelper, DataHelper, ParameterHelper
 from model import CommodityHandler
 from api.handler import APIHandler
 
@@ -9,12 +9,13 @@ class Main:
     def __init__(self):
         EnvHelper()
         DataHelper()
+        ParameterHelper()
         self.start_commodity()
         self.start_api()
 
     def start_commodity(self):
         """Function to start commodity related functions"""
-        self.commodity_handler = CommodityHandler(True)
+        self.commodity_handler = CommodityHandler(True, True)
 
     def start_api(self):
         """Function to start API related functions"""

@@ -5,7 +5,7 @@ from model import CommodityHandler
 
 app = FastAPI()
 router = APIRouter()
-commodity_handler = CommodityHandler()
+commodity_handler = CommodityHandler(testing=True, finetuned=True)
 
 class APIRouterHandler:
     """Class for handling all router"""
