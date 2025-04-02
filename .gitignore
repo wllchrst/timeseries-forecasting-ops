@@ -4,3 +4,4 @@
 save_dir
 predictions
 mlruns
+mlflow_data
