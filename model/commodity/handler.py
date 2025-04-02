@@ -1,5 +1,5 @@
 """Handler for commodity price"""
-import pandas as pd
+from logger.commodity_logger import CommodityLogger
 from model.commodity.model import CommodityModel, FinetuningParameter
 from model.commodity.dataset import CommodityDataset
 from model.commodity.constant import DEFAULT_PARAMETER
@@ -14,6 +14,7 @@ class CommodityHandler:
         self.model = CommodityModel()
         self.testing = testing
         self.parameter = None
+        self.logger = CommodityLogger()
         if finetuned:
             self.finetune_and_evaluate()
 
@@ -42,6 +43,7 @@ class CommodityHandler:
                                         finetuning_parameter.context_length,
                                         finetuning_parameter.forecast_length)
 
+            self.logger.log_finetuning(parameter, self.model.get_model())
         except Exception as e:
             print(f'Finetuning and evaluate error: {e}')
 

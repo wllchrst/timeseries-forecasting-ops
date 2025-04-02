@@ -4,11 +4,13 @@ Class for holding commodity model
 import traceback
 import pandas as pd
 import numpy as np
+import torch.nn as nn
 from transformers import Trainer
+from dataclasses import dataclass
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from tsfm_public import TimeSeriesPreprocessor
 from model.commodity.training import fewshot_finetune_eval, predict_new_data
 from api.types import CommodityPriceRequestDTO
-from dataclasses import dataclass
 
 @dataclass
 class FinetuningParameter:
@@ -29,6 +31,10 @@ class CommodityModel:
         self.tsp: TimeSeriesPreprocessor = None
         self.province_mapping: dict = None
         self.commodity_mapping: dict = None
+
+    def get_model(self) -> nn.Module:
+        """Return the trainer's model for looging"""
+        return self.trainer.model
 
     def finetune_model(
         self,
@@ -83,6 +89,7 @@ class CommodityModel:
             )
 
             print(predictions_df.head())
+
         except Exception as e:
             traceback.print_exc()
             print(f'Dataset testing error: {e}')
