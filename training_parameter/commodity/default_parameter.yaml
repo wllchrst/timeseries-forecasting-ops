@@ -4,5 +4,5 @@ finetuning_parameter:
   epochs: 50
   batchsize: 32
   loss: "mse"
-  context_length: 128
-  forecast_length: 24
+  context_length: 512
+  forecast_length: 96

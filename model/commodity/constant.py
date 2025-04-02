@@ -3,6 +3,7 @@
 id_columns: list[str] = ['commodity', 'province']
 target_columns: list[str] = ['price']
 timestamp_column: str = "Date"
+DEFAULT_PARAMETER="default_parameter"
 
 column_specifiers = {
     "timestamp_column": timestamp_column,

@@ -8,6 +8,19 @@ from transformers import Trainer
 from tsfm_public import TimeSeriesPreprocessor
 from model.commodity.training import fewshot_finetune_eval, predict_new_data
 from api.types import CommodityPriceRequestDTO
+from dataclasses import dataclass
+
+@dataclass
+class FinetuningParameter:
+    """Data Class for finetuning"""
+    learning_rate: float
+    fewshot_percentage: int
+    epochs: int
+    batchsize: int
+    loss: str
+    context_length: int
+    forecast_length: int
+
 class CommodityModel:
     """Model for training, testing, and predicting data for commodity price
     """
@@ -16,27 +29,28 @@ class CommodityModel:
         self.tsp: TimeSeriesPreprocessor = None
         self.province_mapping: dict = None
         self.commodity_mapping: dict = None
-        self.context_length = 512
-        self.prediction_length = 96
 
     def finetune_model(
         self,
         dataset: pd.DataFrame,
         province_mapping: dict,
         commodity_mapping: dict,
+        parameter: FinetuningParameter,
         testing=False):
         """Finetune model using the dataset given in the commodity model.
         """
         dummy_dataset = dataset[0: 500]
+        print(dataset.head())
+        print(dataset.columns)
         try:
             self.trainer, self.tsp = fewshot_finetune_eval(
                 training_dataset=dummy_dataset if testing else dataset,
-                batch_size=32,
-                context_length=self.context_length,
-                forecast_length=self.prediction_length,
-                fewshot_percent=30,
-                learning_rate=0.001,
-                num_epochs=1 if testing else 20,
+                batch_size=parameter.batchsize,
+                context_length=parameter.context_length,
+                forecast_length=parameter.forecast_length,
+                fewshot_percent=parameter.fewshot_percentage,
+                learning_rate=parameter.learning_rate,
+                num_epochs=1 if testing else parameter.epochs,
                 save_dir='./save_dir'
             )
             self.province_mapping = province_mapping
@@ -45,7 +59,10 @@ class CommodityModel:
         except Exception as e:
             print(f'Finetuning model error: {e}')
 
-    def test_with_dataset(self, test_dataset: pd.DataFrame):
+    def test_with_dataset(self,
+                    test_dataset: pd.DataFrame,
+                    context_length: int,
+                    forecast_length:int):
         """Test Finetune using test dataset in the parameter
 
         Args:
@@ -59,17 +76,21 @@ class CommodityModel:
                 trainer=self.trainer,
                 new_data=test_dataset,
                 tsp=self.tsp,
-                context_length=self.context_length,
-                forecast_length=self.prediction_length,
+                context_length=context_length,
+                forecast_length=forecast_length,
                 dataset_name="new_prediction",
                 with_plot=False
             )
 
             print(predictions_df.head())
         except Exception as e:
+            traceback.print_exc()
             print(f'Dataset testing error: {e}')
 
-    def predict_price(self, commodity_price_request: CommodityPriceRequestDTO) -> np.float64:
+    def predict_price(self,
+                commodity_price_request: CommodityPriceRequestDTO,
+                context_length: int,
+                forecast_length: int) -> np.float64:
         """Function to predict commodity price
 
         Args:
@@ -88,8 +109,8 @@ class CommodityModel:
                 trainer=self.trainer,
                 new_data=predict_df,
                 tsp=self.tsp,
-                context_length=self.context_length,
-                forecast_length=self.prediction_length,
+                context_length=context_length,
+                forecast_length=forecast_length,
                 dataset_name="new_prediction",
                 with_plot=False
             )
