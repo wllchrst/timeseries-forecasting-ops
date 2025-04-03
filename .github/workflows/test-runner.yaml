@@ -1,0 +1,20 @@
+name: Test GitHub Runner
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  test-runner:
+    runs-on: self-hosted # This will run on your self-hosted GitHub Runner
+    steps:
+      - name: Print Hostname
+        run: hostname
+
+      - name: Check Python Version
+        run: python --version
+
+      - name: List Files
+        run: ls -lah
