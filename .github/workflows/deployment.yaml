@@ -14,6 +14,15 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Create .env file
+        run: |
+          echo "API_HOST=${{ secrets.API_HOST }}" >> .env
+          echo "COMMODITY_TRAINING=${{ secrets.COMMODITY_TRAINING }}" >> .env
+          echo "COMMODITY_TESTING=${{ secrets.COMMODITY_TESTING }}" >> .env
+          echo "MODEL_TRACKING_URI=${{ secrets.MODEL_TRACKING_URI }}" >> .env
+          echo "COMMODITY_TRAINING_PARAMETER_PATH=${{ secrets.COMMODITY_TRAINING_PARAMETER_PATH }}" >> .env
+        shell: bash
+
       - name: Build and start containers
         run: docker compose up -d --build
 
