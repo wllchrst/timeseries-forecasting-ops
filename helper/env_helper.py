@@ -10,7 +10,25 @@ class EnvHelper:
     """
     def __init__(self):
         load_dotenv()
+        self.envs = ["API_HOST",
+                    "COMMODITY_TRAINING",
+                    "COMMODITY_TESTING",
+                    "MODEL_TRACKING_URI",
+                    "COMMODITY_TRAINING_PARAMETER_PATH"]
+        self.all_available = self.check_envs()
         self.gather_env()
+    
+    def check_envs(self) -> bool:
+        """Check if all the env is available
+
+        Returns:
+            bool: if true all env is available, else otherwise
+        """
+        for env in self.envs:
+            if os.getenv(env) is None:
+                print(f'Env {env} is missing')
+                return False
+        return True
 
     def gather_env(self):
         """Gather all env variables

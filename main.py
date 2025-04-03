@@ -7,11 +7,14 @@ from api.handler import APIHandler
 class Main:
     """Main class for running all application"""
     def __init__(self):
-        EnvHelper()
+        self.env_helper = EnvHelper()
         DataHelper()
         ParameterHelper()
-        self.start_commodity()
-        self.start_api()
+        if self.env_helper.all_available:
+            self.start_commodity()
+            self.start_api()
+        else:
+            print("Application is not going to be started, all env is not available")
 
     def start_commodity(self):
         """Function to start commodity related functions"""
