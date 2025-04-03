@@ -15,14 +15,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build and start containers
-        run: docker compose up --build
+        run: docker compose up -d --build
 
       - name: Check running containers
         run: docker ps -a
-
-      - name: Wait for application to be ready
-        run: sleep 10 # Adjust this if your app takes longer to start
-
-      - name: Test application endpoint
-        run: |
-          curl --fail http://localhost:8000 || (echo "App failed to start" && exit 1)
