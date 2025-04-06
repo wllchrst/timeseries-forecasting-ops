@@ -1,4 +1,5 @@
 """Handler for commodity price"""
+import torch
 from logger.commodity_logger import CommodityLogger
 from model.commodity.model import CommodityModel, FinetuningParameter
 from model.commodity.dataset import CommodityDataset
@@ -17,6 +18,15 @@ class CommodityHandler:
         self.logger = CommodityLogger()
         if finetuned:
             self.finetune_and_evaluate()
+
+    def get_input_example(self):
+        df_sample = self.train_dset.dataset.dataframe.iloc[0]
+
+        example_input = torch.tensor(df_sample.values, dtype=torch.float32)
+
+        example_input = example_input.unsqueeze(0)
+
+        return example_input
 
     def finetune_and_evaluate(self, use_default=True):
         print("Finetuning and evaluating")
@@ -43,7 +53,8 @@ class CommodityHandler:
                                         finetuning_parameter.context_length,
                                         finetuning_parameter.forecast_length)
 
-            self.logger.log_finetuning(parameter, self.model.get_model())
+            input_example = self.get_input_example()
+            self.logger.log_finetuning(parameter, self.model.get_model(), input_example)
         except Exception as e:
             print(f'Finetuning and evaluate error: {e}')
 
